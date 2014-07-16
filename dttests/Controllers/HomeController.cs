@@ -15,20 +15,41 @@ namespace dttests.Controllers
         public ActionResult Index()
         {
             ViewBag.Columns = GetColumns();
+            ViewBag.FipsChoices = _repo.All().GroupBy(x => x.FIPS).Select(x => x.Key).OrderBy(x => x);
+            ViewBag.TableChoices = new string[] { "Segments", "Segments Orig", "GRDMS" };
             return View();
         }
 
         [HttpPost]
         public JsonResult Get([ModelBinder(typeof(DataTablesBinder))] IDataTablesRequest requestModel)
         {
-            //var requestModel = new DataTablesRequest();
-
             // get all records
             var segments = _repo.All();
             var filteredResults = segments;
 
-            // this is so we're not sending back everything;
-            filteredResults = filteredResults.Where(x => x.FIPS == "069").Take(20);
+            // filter fips
+            List<Column> columns = requestModel.Columns.ToList();
+            if (!string.IsNullOrWhiteSpace(columns[1].Search.Value))
+            {
+                filteredResults = filteredResults.Where(x => x.FIPS == columns[1].Search.Value);
+            }
+
+
+            // order the results get all cols where IsOrderable is true and order these but the OrderNumber
+            //if (columns.Any(x => x.IsOrdered))
+            //{
+            //    var orderedCols = columns.Where(x => x.IsOrdered == true)
+            //        .OrderBy(x => x.OrderNumber)
+            //        .Select(x => new { propertyName = x.Data, sortDir = x.SortDirection }).ToArray();
+
+            //    filteredResults = filteredResults.OrderBy(orderedCols);
+
+                
+            //}
+
+            // loop throu
+
+
 
             // page filteredResults
             var pagedResults = filteredResults.Skip(requestModel.Start).Take(requestModel.Length);

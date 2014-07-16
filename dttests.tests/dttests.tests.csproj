@@ -62,10 +62,17 @@
   </Choose>
   <ItemGroup>
     <Compile Include="CryptoTests.cs" />
+    <Compile Include="LinqTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\dttests\dttests.csproj">
+      <Project>{c7aceab3-7444-4179-9c19-105a2ec267e1}</Project>
+      <Name>dttests</Name>
+    </ProjectReference>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

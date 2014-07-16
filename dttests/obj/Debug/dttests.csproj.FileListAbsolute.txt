@@ -195,3 +195,4 @@ C:\Projects\git\dttests\dttests\bin\zh-Hant\System.Spatial.resources.dll
 C:\Projects\git\dttests\dttests\obj\Debug\dttests.csprojResolveAssemblyReference.cache
 C:\Projects\git\dttests\dttests\obj\Debug\dttests.dll
 C:\Projects\git\dttests\dttests\obj\Debug\dttests.pdb
+D:\github\dttests\dttests\bin\dttests.dll.config

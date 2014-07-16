@@ -1,0 +1,88 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+
+<div id="colMenu">
+</div>
+
+<div class="row">
+    <table id="table">
+        <thead>
+            <tr>
+                @foreach(DTS.DataTables.MVC.ColumnHeader col in ViewBag.Columns)
+                {
+                    <th>@col.name</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
+</div>
+
+
+<script type="text/html" id="tmplColItem">
+    <div class="span-3"><input class="colItem" type="checkbox" value="{{col}}" data-column="{{target}}" {{isChecked}} />{{col}}</div>
+</script>
+
+@section styles {
+    @Styles.Render("~/content/datatables")
+}
+
+@section scripts {
+    
+    
+    @Scripts.Render("~/bundles/datatables")
+
+    <script type="text/javascript">
+        var columnHeaders = $.parseJSON('@(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(ViewBag.Columns))'.replace(/&quot;/g, '"'));
+        $(document).ready(function () {
+            // populate the col menu
+            var $colMenu = $('#colMenu');
+
+            var table = $('#table').DataTable({
+                "saveState" : true,
+                "pagingType": "full_numbers",
+                "length": 20,
+                "processing": true,
+                "serverSide": true,
+                "pagingType": "full",
+                "ajax":  {
+                    "url" : '@Url.Action("Get", "Home")',
+                    "type" : "POST"
+                },
+                columns: columnHeaders,
+                order: [[1, "asc"]],
+                "scrollX": true /*makes table responsive; otherwise fixes width*/
+            });
+
+            // get the columns from table
+            console.log(table.columns()[0].column.data);
+            //$.each(table.columns, function (i, item) {
+            //    var html = ich.tmplColItem({ col: item.data, target: item.target, isChecked: item.visible === true ? 'checked' : '' });
+            //    $colMenu.append(html);
+            //});
+
+            $('input.colItem').on('click', function (e) {
+                e.preventDefault();
+
+                // Get the column API object
+                var column = table.column($(this).attr('data-column'));
+
+                // Toggle the visibility
+                column.visible(!column.visible());
+
+                if ($(this + ':checked').length === 1 ) {
+                    $(this).prop('checked', false);
+                } else {
+                    $(this).prop('checked', true);
+                }
+
+            });
+        });
+    </script>
+
+
+}

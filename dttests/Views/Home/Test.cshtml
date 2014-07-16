@@ -1,0 +1,30 @@
+﻿
+@{
+    ViewBag.Title = "Test";
+}
+
+<h2>Test</h2>
+@ViewBag.Total
+
+
+@section scripts {
+
+    @Scripts.Render("~/bundles/datatables")
+
+    <script type="text/javascript">
+        var obj = [
+            { name: "Steve" },
+            { name: "John" }
+        ];
+
+        var str = JSON.stringify(obj);
+
+        // base64 encode query string
+        var hash = Base64.encode(str);
+
+        // get the encoded string
+        //var query = hash.toString(CryptoJS.enc.Base64);
+
+        console.log(hash);
+    </script>
+}

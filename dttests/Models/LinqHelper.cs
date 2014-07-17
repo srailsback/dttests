@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace dttests.Models
 {
@@ -17,86 +18,122 @@ namespace dttests.Models
             return collection;
         }
 
-        public static IQueryable<T> OrderBy<T>(this IQueryable<T> source, string propertyName, bool desc = false)
-        {
-            return (IQueryable<T>)OrderBy((IQueryable)source, propertyName, desc);
-        }
-
-        public static IQueryable OrderBy(this IQueryable source, string propertyName, bool desc = false)
-        {
-            var x = Expression.Parameter(source.ElementType, "x");
-            var selector = Expression.Lambda(Expression.PropertyOrField(x, propertyName), x);
-            if (!desc)
-            {
-                return source.Provider.CreateQuery(
-                    Expression.Call(typeof(Queryable), "OrderBy", new Type[] { source.ElementType, selector.Body.Type },
-                         source.Expression, selector));
-            }
-            else
-            {
-                return source.Provider.CreateQuery(
-                    Expression.Call(typeof(Queryable), "OrderByDescending", new Type[] { source.ElementType, selector.Body.Type },
-                         source.Expression, selector));
-
-            }
-        }
-
-        //public static IEnumerable<T> OrderByMany<T>(this IEnumerable<T> enumerable,
-        //    params Expression<Func<T, object>>[] expressions)
-        //{
-        //    if (expressions.Length == 1)
-        //        return enumerable.OrderBy(expressions[0].Compile());
-
-        //    var query = enumerable.OrderBy(expressions[0].Compile());
-        //    for (int i = 1; i < expressions.Length; i++)
-        //    {
-        //        query = query.ThenBy(expressions[i].Compile());
-        //    }
-        //    return query;
-
-        //}
-
-
-        public static IQueryable<T> OrderByMany<T>(this IQueryable<T> source, object[] ordering)
-        {
-            if (ordering.Length == 0 ) {
-                throw new ArgumentException("No orders provided.");
-            }
-
-
-            for (int i = 0; i < ordering.Length; i++)
-            {                
-                //string[] item = (string[]) ordering[i];
-                //var x = Expression.Parameter(source.ElementType, "x");
-                //var selector = Expression.Lambda(Expression.PropertyOrField(x, item[0]), x);
-
-                if (i == 0)
-                {
-                    //source.OrderBy(x => x.GetType()
-                    //source.Provider.CreateQuery(
-                    //    Expression.Call(typeof(Queryable),
-                    //        item[1].ToLower().Contains("asc") ? "OrderBy" : "OrderByDescending", new Type[] { 
-                    //            source.ElementType, selector.Body.Type },
-                    //                         source.Expression, selector));
-                }
-                else
-                {
-                    //source.Provider.CreateQuery(
-                    //    Expression.Call(typeof(Queryable),
-                    //        item[1].ToLower().Contains("asc") ? "ThenBy" : "ThenByDescending", new Type[] { 
-                    //            source.ElementType, selector.Body.Type },
-                    //                         source.Expression, selector));
-
-                }
-            }
-
-            return source;
-        }
-
         public static TSource Set<TSource>(this TSource input, Action<TSource> updater)
         {
             updater(input);
             return input;
         }
+
+
+        /// <summary>
+        /// Orders the by.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="enumerable">The enumerable.</param>
+        /// <param name="orderBy">The order by.</param>
+        /// <returns></returns>
+        /// <remarks>USAGE: persons.OrderBy("lastName ASC, firstName DESC")</remarks>
+        public static IEnumerable<T> OrderBy<T>(this IEnumerable<T> enumerable, string orderBy)
+        {
+            return enumerable.AsQueryable().OrderBy(orderBy).AsEnumerable();
+        }
+
+        public static IQueryable<T> OrderBy<T>(this IQueryable<T> collection, string orderBy)
+        {
+            foreach (OrderByInfo orderByInfo in ParseOrderBy(orderBy))
+                collection = ApplyOrderBy<T>(collection, orderByInfo);
+
+            return collection;
+        }
+
+        private static IQueryable<T> ApplyOrderBy<T>(IQueryable<T> collection, OrderByInfo orderByInfo)
+        {
+            string[] props = orderByInfo.PropertyName.Split('.');
+            Type type = typeof(T);
+
+            ParameterExpression arg = Expression.Parameter(type, "x");
+            Expression expr = arg;
+            foreach (string prop in props)
+            {
+                // use reflection (not ComponentModel) to mirror LINQ
+                PropertyInfo pi = type.GetProperty(prop);
+                expr = Expression.Property(expr, pi);
+                type = pi.PropertyType;
+            }
+            Type delegateType = typeof(Func<,>).MakeGenericType(typeof(T), type);
+            LambdaExpression lambda = Expression.Lambda(delegateType, expr, arg);
+            string methodName = String.Empty;
+
+            if (!orderByInfo.Initial && collection is IOrderedQueryable<T>)
+            {
+                if (orderByInfo.Direction == SortDirection.Ascending)
+                    methodName = "ThenBy";
+                else
+                    methodName = "ThenByDescending";
+            }
+            else
+            {
+                if (orderByInfo.Direction == SortDirection.Ascending)
+                    methodName = "OrderBy";
+                else
+                    methodName = "OrderByDescending";
+            }
+
+            //TODO: apply caching to the generic methodsinfos?
+            return (IOrderedQueryable<T>)typeof(Queryable).GetMethods().Single(
+                method => method.Name == methodName
+                        && method.IsGenericMethodDefinition
+                        && method.GetGenericArguments().Length == 2
+                        && method.GetParameters().Length == 2)
+                .MakeGenericMethod(typeof(T), type)
+                .Invoke(null, new object[] { collection, lambda });
+
+        }
+
+        private static IEnumerable<OrderByInfo> ParseOrderBy(string orderBy)
+        {
+            if (String.IsNullOrEmpty(orderBy))
+                yield break;
+
+            string[] items = orderBy.Split(',');
+            bool initial = true;
+            foreach (string item in items)
+            {
+                string[] pair = item.Trim().Split(' ');
+
+                if (pair.Length > 2)
+                    throw new ArgumentException(String.Format("Invalid OrderBy string '{0}'. Order By Format: Property, Property2 ASC, Property2 DESC", item));
+
+                string prop = pair[0].Trim();
+
+                if (String.IsNullOrEmpty(prop))
+                    throw new ArgumentException("Invalid Property. Order By Format: Property, Property2 ASC, Property2 DESC");
+
+                SortDirection dir = SortDirection.Ascending;
+
+                if (pair.Length == 2)
+                    dir = ("desc".Equals(pair[1].Trim(), StringComparison.OrdinalIgnoreCase) ? SortDirection.Descending : SortDirection.Ascending);
+
+                yield return new OrderByInfo() { PropertyName = prop, Direction = dir, Initial = initial };
+
+                initial = false;
+            }
+
+        }
+
+        private class OrderByInfo
+        {
+            public string PropertyName { get; set; }
+            public SortDirection Direction { get; set; }
+            public bool Initial { get; set; }
+        }
+
+        private enum SortDirection
+        {
+            Ascending = 0,
+            Descending = 1
+        }
+
+
     }
 }

@@ -49,14 +49,16 @@ namespace dttests.tests
                 new Col() { name = "age", isOrderable = true, orderNumber = 2, sortDir = "asc" }
             };
 
-            //var orderBy = cols.OrderBy(x => x.orderNumber).Select(x => new[] { x.name, x.sortDir == "desc" ? true : false });
-            var orderBy = cols.OrderBy(x => x.orderNumber).Select(x => new string[] { x.name, x.sortDir } ).ToArray();
-
+            var orderByMany = cols.OrderBy(x => x.orderNumber).Select(x => string.Format("{0} {1}", x.name, x.sortDir.ToUpper())).ToArray();
+            string orderBy = string.Join(",", orderByMany);
 
             var resultA = persons.OrderBy(x => x.lastName).ThenBy(x => x.firstName);
-            var resultB = persons.OrderByMany(orderBy);
+            var resultB = persons.OrderBy(orderBy);
+            var resultC = persons.OrderBy("lastName ASC, firstName DESC");
+
             Assert.AreEqual("Aaron", resultA.Skip(1).First().firstName);
             Assert.AreEqual("Aaron", resultB.Skip(1).First().firstName);
+            Assert.AreEqual("Warren", resultC.Skip(1).First().firstName);
 
         }
     }

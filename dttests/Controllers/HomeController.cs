@@ -25,36 +25,30 @@ namespace dttests.Controllers
         {
             // get all records
             var segments = _repo.All();
-            var filteredResults = segments;
+
+            // builder search order
+            List<Column> columns = requestModel.Columns.ToList();
+            
+            // order the results
+            var orderBy = string.Join(", ", requestModel.Columns.GetSortedColumns()
+                .Select(x => string.Format("{0} {1}", x.Data, x.SortDirection.ToString().ToLower().Contains("asc") ? "ASC" : "DESC")
+            ).ToArray());
+
+            // start the filtering
+            var filteredResults = segments.OrderBy(orderBy);
 
             // filter fips
-            List<Column> columns = requestModel.Columns.ToList();
             if (!string.IsNullOrWhiteSpace(columns[1].Search.Value))
             {
                 filteredResults = filteredResults.Where(x => x.FIPS == columns[1].Search.Value);
             }
 
 
-            // order the results get all cols where IsOrderable is true and order these but the OrderNumber
-            //if (columns.Any(x => x.IsOrdered))
-            //{
-            //    var orderedCols = columns.Where(x => x.IsOrdered == true)
-            //        .OrderBy(x => x.OrderNumber)
-            //        .Select(x => new { propertyName = x.Data, sortDir = x.SortDirection }).ToArray();
 
-            //    filteredResults = filteredResults.OrderBy(orderedCols);
-
-                
-            //}
-
-            // loop throu
-
-
-
-            // page filteredResults
+            // page the results
             var pagedResults = filteredResults.Skip(requestModel.Start).Take(requestModel.Length);
 
-            // json-ize the result
+            // flip results to json and return it to the view
             var result = Json(new DataTablesResponse(requestModel.Draw, pagedResults, filteredResults.Count(), segments.Count()), JsonRequestBehavior.AllowGet);
             return result;
         }

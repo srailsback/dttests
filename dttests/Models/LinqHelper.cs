@@ -41,53 +41,62 @@ namespace dttests.Models
             }
         }
 
-
-        //public static IQueryable<T> OrderBy<T>(this IQueryable<T> source, object[] ordering)
+        //public static IEnumerable<T> OrderByMany<T>(this IEnumerable<T> enumerable,
+        //    params Expression<Func<T, object>>[] expressions)
         //{
-        //    var query = source;
-        //    var arr = ordering.ToArray();
+        //    if (expressions.Length == 1)
+        //        return enumerable.OrderBy(expressions[0].Compile());
 
-        //    // order by the first condition
-        //    if (arr.Count() == 0)
+        //    var query = enumerable.OrderBy(expressions[0].Compile());
+        //    for (int i = 1; i < expressions.Length; i++)
         //    {
-        //        throw new ArgumentException("Nothing to order by");
+        //        query = query.ThenBy(expressions[i].Compile());
         //    }
-
-        //    for (int i = 0; i < arr.Count(); i++)
-        //    {
-        //        string[] element = (string[])arr[0];
-        //        var x = Expression.Parameter(source.ElementType, "x");
-        //        var selector = Expression.Lambda(Expression.PropertyOrField(x, element[0].ToString()), x);
-
-        //        if (element[1].ToString() == "True")
-        //        {
-        //            // asc
-        //            //query.Provider.CreateQuery(
-        //            //    Expression.Call(typeof(Queryable), i == 0 ? "OrderBy" : "ThenBy", new Type[] { source.ElementType, selector.Body.Type },
-        //            //         source.Expression, selector));
-                    
-        //            query.Provider.CreateQuery(
-        //                Expression.Call(typeof(Queryable), i == 0 ? "OrderBy" : "ThenBy", new Type[] { source.ElementType, selector.Body.Type },
-        //                     source.Expression, selector));
-        //        }
-        //        else
-        //        {
-        //            // desc
-        //            query.Provider.CreateQuery(
-        //                Expression.Call(typeof(Queryable), i == 0 ? "OrderByDescending" : "ThenByDescending", new Type[] { source.ElementType, selector.Body.Type },
-        //                     source.Expression, selector));
-        //        }
-        //    }
-
         //    return query;
+
         //}
 
+
+        public static IQueryable<T> OrderByMany<T>(this IQueryable<T> source, object[] ordering)
+        {
+            if (ordering.Length == 0 ) {
+                throw new ArgumentException("No orders provided.");
+            }
+
+
+            for (int i = 0; i < ordering.Length; i++)
+            {                
+                //string[] item = (string[]) ordering[i];
+                //var x = Expression.Parameter(source.ElementType, "x");
+                //var selector = Expression.Lambda(Expression.PropertyOrField(x, item[0]), x);
+
+                if (i == 0)
+                {
+                    //source.OrderBy(x => x.GetType()
+                    //source.Provider.CreateQuery(
+                    //    Expression.Call(typeof(Queryable),
+                    //        item[1].ToLower().Contains("asc") ? "OrderBy" : "OrderByDescending", new Type[] { 
+                    //            source.ElementType, selector.Body.Type },
+                    //                         source.Expression, selector));
+                }
+                else
+                {
+                    //source.Provider.CreateQuery(
+                    //    Expression.Call(typeof(Queryable),
+                    //        item[1].ToLower().Contains("asc") ? "ThenBy" : "ThenByDescending", new Type[] { 
+                    //            source.ElementType, selector.Body.Type },
+                    //                         source.Expression, selector));
+
+                }
+            }
+
+            return source;
+        }
 
         public static TSource Set<TSource>(this TSource input, Action<TSource> updater)
         {
             updater(input);
             return input;
-
         }
     }
 }

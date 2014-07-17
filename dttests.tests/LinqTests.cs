@@ -41,7 +41,7 @@ namespace dttests.tests
         }
 
         [TestMethod]
-        public void OrderBy()
+        public void OrderByMany()
         {
             var cols = new List<Col>() {
                 new Col() { name = "firstName", isOrderable = true, orderNumber = 1, sortDir = "asc" },
@@ -49,19 +49,14 @@ namespace dttests.tests
                 new Col() { name = "age", isOrderable = true, orderNumber = 2, sortDir = "asc" }
             };
 
-            var ordering = cols
-                .Where(x => x.isOrderable == true)
-                .OrderBy(x => x.orderNumber)
-                .Select(x => new string[] { x.name, (x.sortDir == "asc" ? true : false).ToString() }).ToArray();
-            
-            //foreach (var col in cols.OrderBy( x=> x.orderNumber))
-            //{
+            //var orderBy = cols.OrderBy(x => x.orderNumber).Select(x => new[] { x.name, x.sortDir == "desc" ? true : false });
+            var orderBy = cols.OrderBy(x => x.orderNumber).Select(x => new string[] { x.name, x.sortDir } ).ToArray();
 
 
-            //    result = result.OrderBy(col.name, col.sortDir != "asc" ? false : false);
-            //}
-
-           // Assert.AreEqual("Aaron", result.Skip(1).First().firstName);
+            var resultA = persons.OrderBy(x => x.lastName).ThenBy(x => x.firstName);
+            var resultB = persons.OrderByMany(orderBy);
+            Assert.AreEqual("Aaron", resultA.Skip(1).First().firstName);
+            Assert.AreEqual("Aaron", resultB.Skip(1).First().firstName);
 
         }
     }

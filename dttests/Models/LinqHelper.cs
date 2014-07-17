@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Objects.SqlClient;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -23,6 +24,8 @@ namespace dttests.Models
             updater(input);
             return input;
         }
+
+        #region OrderBy
 
 
         /// <summary>
@@ -56,7 +59,7 @@ namespace dttests.Models
             foreach (string prop in props)
             {
                 // use reflection (not ComponentModel) to mirror LINQ
-                PropertyInfo pi = type.GetProperty(prop);
+                PropertyInfo pi = type.GetProperty(prop, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
                 expr = Expression.Property(expr, pi);
                 type = pi.PropertyType;
             }
@@ -133,6 +136,29 @@ namespace dttests.Models
             Ascending = 0,
             Descending = 1
         }
+
+
+        #endregion
+
+
+        #region FilterByValue
+
+        /// <summary>
+        /// Filters the by value. Ghetto but it works
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="collection">The collection.</param>
+        /// <param name="propertyName">Name of the property.</param>
+        /// <param name="propertyValue">The property value.</param>
+        /// <returns></returns>
+        /// <remarks>USAGE: persons.FilterByValue("firstName", "value")</remarks>
+        public static IQueryable<T> FilterByValue<T>(this IQueryable<T> collection, string propertyName, string propertyValue)
+        {
+            return collection.Where(x => x.GetType().GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance).GetValue(x, null).ToString() == propertyValue.ToString());
+        }
+
+
+        #endregion
 
 
     }

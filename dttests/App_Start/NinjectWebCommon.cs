@@ -62,7 +62,8 @@ namespace dttests.App_Start
         /// <param name="kernel">The kernel.</param>
         private static void RegisterServices(IKernel kernel)
         {
-            kernel.Bind<IRepository>().To<Repository>();
+            kernel.Bind<IGRDMSRepository>().To<GRDMSRepository>();
+            kernel.Bind<ISegmentEditsRepository>().To<SegmentEditsRepository>();
         }        
     }
 }

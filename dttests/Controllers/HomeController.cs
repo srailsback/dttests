@@ -1,56 +1,63 @@
-﻿using System;
+﻿using DTS.DataTables.MVC;
+using dttests.Helpers;
+using dttests.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using System.Web.Mvc;
-using DTS.DataTables.MVC;
-using dttests.Models;
 
 namespace dttests.Controllers
 {
     public class HomeController : BaseController
     {
-        public HomeController(IRepository repo) : base(repo) { }
+        public HomeController(IGRDMSRepository repo, ISegmentEditsRepository editRepo) : base(repo, editRepo) { }
 
-        public ActionResult Index()
+        public ActionResult Index(string id = "")
         {
-            ViewBag.Columns = GetColumns();
+            if (id == "SegmentEdits")
+            {
+                ViewBag.Columns = GetColumns(true);
+            }
+            else
+            {
+                ViewBag.Columns = GetColumns();
+            }
+
             ViewBag.FipsChoices = _repo.All().GroupBy(x => x.FIPS).Select(x => x.Key).OrderBy(x => x);
-            ViewBag.TableChoices = new string[] { "Segments", "Segments Orig", "GRDMS" };
+            ViewBag.TableChoices = new string[] { "Segments", "SegmentsOrig", "GRDMS", "SegmentEdits" };
+            ViewBag.SelectedTable = id;
             return View();
         }
 
         [HttpPost]
         public JsonResult Get([ModelBinder(typeof(DataTablesBinder))] IDataTablesRequest requestModel)
         {
-            // get all records
-            var segments = _repo.All();
-
-            // builder search order
-            List<Column> columns = requestModel.Columns.ToList();
-            
-            // order the results
-            var orderBy = string.Join(", ", requestModel.Columns.GetSortedColumns()
-                .Select(x => string.Format("{0} {1}", x.Data, x.SortDirection.ToString().ToLower().Contains("asc") ? "ASC" : "DESC")
-            ).ToArray());
-
-            // start the filtering
-            var filteredResults = segments.OrderBy(orderBy);
-
-            // filter fips
-            if (!string.IsNullOrWhiteSpace(columns[1].Search.Value))
+            bool isSegmentEdit = requestModel.Columns.Any(x => x.Name == "ChangeId");
+            if (!isSegmentEdit)
             {
-                filteredResults = filteredResults.Where(x => x.FIPS == columns[1].Search.Value);
+                var data = _repo.All();
+                var filteredResults = data.OrderBy(GetOrder(requestModel.Columns));
+                foreach (Column col in requestModel.Columns.Where(x => !string.IsNullOrWhiteSpace(x.Search.Value)))
+                {
+                    filteredResults = filteredResults.FilterByValue(col.Name, col.Search.Value);
+                }
+                var pagedResults = filteredResults.Skip(requestModel.Start).Take(requestModel.Length);
+                var result = Json(new DataTablesResponse(requestModel.Draw, pagedResults, filteredResults.Count(), data.Count()), JsonRequestBehavior.AllowGet);
+                return result;
+
             }
-
-
-
-            // page the results
-            var pagedResults = filteredResults.Skip(requestModel.Start).Take(requestModel.Length);
-
-            // flip results to json and return it to the view
-            var result = Json(new DataTablesResponse(requestModel.Draw, pagedResults, filteredResults.Count(), segments.Count()), JsonRequestBehavior.AllowGet);
-            return result;
+            else
+            {
+                var data = _editRepo.All();
+                var filteredResults = data.OrderBy(GetOrder(requestModel.Columns));
+                foreach (Column col in requestModel.Columns.Where(x => !string.IsNullOrWhiteSpace(x.Search.Value)))
+                {
+                    filteredResults = filteredResults.FilterByValue(col.Name, col.Search.Value);
+                }
+                var pagedResults = filteredResults.Skip(requestModel.Start).Take(requestModel.Length);
+                var result = Json(new DataTablesResponse(requestModel.Draw, pagedResults, filteredResults.Count(), data.Count()), JsonRequestBehavior.AllowGet);
+                return result;
+            }
         }
 
         public ActionResult Test()
@@ -60,20 +67,45 @@ namespace dttests.Controllers
             return View();
         }
 
-
-        private IList<ColumnHeader> GetColumns() 
+        private IList<ColumnHeader> GetColumns(bool getEditColumns = false) 
         {
             var list = new List<ColumnHeader>();
-            foreach (SegmentColumns item in Enum.GetValues(typeof(SegmentColumns)))
+            if (!getEditColumns)
             {
-                list.Add(new ColumnHeader() { data = item.ToString(), name = item.ToString(), target = list.Count(), visible = true });
+                foreach (SegmentColumns item in Enum.GetValues(typeof(SegmentColumns)))
+                {
+                    list.Add(new ColumnHeader()
+                    { 
+                        data = item.ToString(), 
+                        name = item.ToString(), 
+                        target = list.Count(), 
+                        //visible = item.HasAttribute<DataTablesColumnAttribute>() ? item.GetAttribute<DataTablesColumnAttribute>().Visible : true
+                        visible = item.ToString() == "SegmentKey" ? false : true
+                    });
+                }
+            }
+            else
+            {
+                foreach (SegmentEditColumns item in Enum.GetValues(typeof(SegmentEditColumns)))
+                {
+                    list.Add(new ColumnHeader() { data = item.ToString(), name = item.ToString(), target = list.Count(), visible = true });
+                }
             }
             return list;
+        }
+
+        private string GetOrder(ColumnCollection columns)
+        {
+            var orderBy = string.Join(", ", columns.GetSortedColumns()
+                .Select(x => string.Format("{0} {1}", x.Data, x.SortDirection.ToString().ToLower().Contains("asc") ? "ASC" : "DESC")
+            ).ToArray());
+            return orderBy;
         }
     }
 
     public enum SegmentColumns
     {
+        [DataTablesColumn(false)]
         SegmentKey
         , FIPS
         , ROUTE
@@ -124,6 +156,21 @@ namespace dttests.Controllers
         , LRSROUTE
         , FROMMEAS
         , TOMEAS
+    }
+
+    public enum SegmentEditColumns
+    {
+        SegmentKey
+        , ChangeId
+        , ChangeType
+        , FIPS
+        , ROUTE
+        , SEGMID
+        , FieldName
+        , OldValue
+        , NewValue
+        , Timestamp
+        , UserName
     }
 
 }

@@ -17,7 +17,6 @@
             </tr>
         </thead>
         <tbody>
-
         </tbody>
     </table>
 </div>
@@ -30,12 +29,20 @@
 <script type="text/html" id="tmplFipsChoice">
     <option value="{{fips}}">{{fips}}</option>
 </script>
+
+<script type="text/html" id="tmplTableChoice">
+    <option value="{{value}}">{{text}}</option>
+</script>
 @section styles {
     @Styles.Render("~/content/datatables")
     <style type="text/css">
         ul.ColVis_collection { width: 886px; left: 280px !important;  }
         ul.ColVis_collection li { width: 160px; float: left; font-size: .8em !important;}
         div#table_filter { display: none;}
+        label.filterSelection { float: left; }
+        label.push20px {
+            margin-left: 20px;
+        }
     </style>
 }
 
@@ -47,6 +54,8 @@
 <script type="text/javascript">
     var columnHeaders = $.parseJSON('@(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(ViewBag.Columns))'.replace(/&quot;/g, '"'));
     var fipsChoices = $.parseJSON('@(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(ViewBag.FipsChoices))'.replace(/&quot;/g, '"'));
+    var tableChoices = $.parseJSON('@(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(ViewBag.TableChoices))'.replace(/&quot;/g, '"'));
+    var selectedTable = '@ViewBag.SelectedTable';
     $(document).ready(function () {
         // populate the col menu
         var $colMenu = $('#colMenu');
@@ -60,34 +69,55 @@
             , "filter" : true
             , "pagingType": "full"
             , "ajax": {
-                "url": '@Url.Action("Get", "Home")'
+                url: '@Url.Action("Get", "Home")'
                 , pages: 5
                 , "type": "POST"
+                , "data": function (d) {
+                    d.table = selectedTable
+                }
             }
             , columns: columnHeaders
             , "order": [[1, 'asc'], [2, 'asc'],[3, 'asc']]
             , "scrollX": true /*makes table responsive; otherwise fixes width*/
             , "dom": 'C<"clear">lfrtip'
-            , "fnDrawCallback": function (settings) {
-            }
         });
 
-        var $select = $('<label>FIPS <select><option></option></select></label>');
-        $.each(fipsChoices, function (i, fips) {
-            // get selected fips
-            var selectedFips = table.columns(1).search()[0];
-            var obj = { fips: fips };
-            $select.find('select').append(ich.tmplFipsChoice(obj)).val(selectedFips);
-        });
 
-        // append fips filter
-        $('div.dataTables_length').append($select);
+        addFipsSelection($('div.dataTables_length'));
+        addTableSelection($('div.dataTables_length'));
 
-        // hook in change
-        $select.find('select').on('change', function () {
-            //console.log(table.columns(1).search());
-            table.columns(1).search($(this).find('option:selected').val()).draw();
-        });
+        function addFipsSelection(ele) {
+            // build html
+            var $select = $('<label class="filterSelection">FIPS <select><option></option></select></label>');
+            $.each(fipsChoices, function (i, fips) {
+                // get selected fips
+                var selectedFips = table.columns(1).search()[0];
+                var obj = { fips: fips };
+                $select.find('select').append(ich.tmplFipsChoice(obj)).val(selectedFips);
+            });
+
+            // append if
+            $(ele).append($select);
+
+            // set selected 
+            // hook in change
+            $select.find('select').on('change', function () {
+                table.columns(1).search($(this).find('option:selected').val()).draw();
+            });
+        }
+
+        function addTableSelection(ele) {
+            var $select = $('<label class="filterSelection push20px">Table <select></select></label>');
+            $.each(tableChoices, function (i, item) {
+                // get selected fips
+                var selectedTable = "Segments";
+                var obj = { value: item, text: (item === 'SegmentsOrig'  || item === 'SegmentEdits' ? item.match(/[A-Z][a-z]+/g) : item) };
+                $select.find('select').append(ich.tmplTableChoice(obj)).val(selectedTable);
+            });
+
+            $(ele).append($select);
+        }
+
     });
 </script>
 

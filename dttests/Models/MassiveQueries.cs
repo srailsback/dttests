@@ -14,4 +14,9 @@ namespace dttests.Models
     {
         public HUTFSegment() : base(MassiveHelper.connectionString, MassiveHelper.GetTableName("GRDMS_CICOOFF_TABLE"), "SegmentKey") { }
     }
+
+    internal class HUTFSegmentEdit : DynamicModel
+    {
+        public HUTFSegmentEdit() : base(MassiveHelper.connectionString, MassiveHelper.GetTableName("Segment_Edits_Table"), "ChangeId") { }
+    }
 }

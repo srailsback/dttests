@@ -1,9 +1,7 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+﻿using dttests.Models;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using dttests.Models;
 
 namespace dttests.tests
 {
@@ -11,6 +9,7 @@ namespace dttests.tests
     public class LinqTests
     {
         private IQueryable<Person> persons;
+        private IList<Col> cols;
 
         public LinqTests()
         {
@@ -27,6 +26,12 @@ namespace dttests.tests
                 new Person("Fonda", "Weaver", 19),
                 new Person("Sheldon", "Christian", 27)
             }.AsQueryable();
+
+            this.cols = new List<Col>() {
+                new Col() { name = "firstName", isOrderable = true, orderNumber = 1, sortDir = "asc", search = "Warren" },
+                new Col() { name = "lastName", isOrderable = true, orderNumber = 0, sortDir = "asc", search = "Brownstein" },
+                new Col() { name = "age", isOrderable = true, orderNumber = 2, sortDir = "asc" }
+            };
         }
        
 
@@ -43,13 +48,7 @@ namespace dttests.tests
         [TestMethod]
         public void OrderByMany()
         {
-            var cols = new List<Col>() {
-                new Col() { name = "firstName", isOrderable = true, orderNumber = 1, sortDir = "asc" },
-                new Col() { name = "lastName", isOrderable = true, orderNumber = 0, sortDir = "asc" },
-                new Col() { name = "age", isOrderable = true, orderNumber = 2, sortDir = "asc" }
-            };
-
-            var orderByMany = cols.OrderBy(x => x.orderNumber).Select(x => string.Format("{0} {1}", x.name, x.sortDir.ToUpper())).ToArray();
+            var orderByMany = this.cols.OrderBy(x => x.orderNumber).Select(x => string.Format("{0} {1}", x.name, x.sortDir.ToUpper())).ToArray();
             string orderBy = string.Join(",", orderByMany);
 
             var resultA = persons.OrderBy(x => x.lastName).ThenBy(x => x.firstName);
@@ -60,6 +59,21 @@ namespace dttests.tests
             Assert.AreEqual("Aaron", resultB.Skip(1).First().firstName);
             Assert.AreEqual("Warren", resultC.Skip(1).First().firstName);
 
+        }
+
+        [TestMethod]
+        public void GetPropertyTest()
+        {
+            var data = this.persons;
+
+            var searchCols = cols.Where(x => !string.IsNullOrWhiteSpace(x.search));
+            foreach (Col col in searchCols)
+            {
+                data = data.FilterByValue(col.name, col.search);
+            }
+
+            Assert.AreEqual("Warren", data.First().firstName);
+            Assert.AreEqual("Brownstein", data.First().lastName);
         }
     }
 
@@ -83,6 +97,7 @@ namespace dttests.tests
         public bool isOrderable { get; set; }
         public string sortDir { get; set; }
         public int orderNumber { get; set; }
+        public string search { get; set; }
     }
 
 }

@@ -209,13 +209,16 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\EnumExtensions.cs" />
     <Compile Include="Models\AccountModels.cs" />
     <Compile Include="Models\CacheHelper.cs" />
+    <Compile Include="Models\ISegmentEditsRepository.cs" />
     <Compile Include="Models\LinqHelper.cs" />
     <Compile Include="Models\Massive.cs" />
     <Compile Include="Models\MassiveQueries.cs" />
-    <Compile Include="Models\Repository.cs" />
+    <Compile Include="Models\GRDMSRepository.cs" />
     <Compile Include="Models\Segment.cs" />
+    <Compile Include="Models\SegmentEdit.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Content Include="Scripts\Vendor\DataTables-1.10.0\extensions\Pipelining\dataTables.Pipelining.js" />
   </ItemGroup>

@@ -3,16 +3,16 @@ using System.Web;
 
 namespace dttests.Models
 {
-    public interface IRepository
+    public interface IGRDMSRepository
     {
         IQueryable<Segment> All(string fips = "");
     }
 
-    public class Repository : IRepository
+    public class GRDMSRepository : IGRDMSRepository
     {
-        private string cacheKey = "segments_store";
+        private string cacheKey = "grdms_segments_store";
 
-        public Repository()
+        public GRDMSRepository()
         {
             this.Cache();
         }

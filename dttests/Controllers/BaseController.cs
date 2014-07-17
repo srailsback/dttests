@@ -9,10 +9,12 @@ namespace dttests.Controllers
 {
     public class BaseController : Controller
     {
-        protected IRepository _repo;
-        public BaseController(IRepository repo)
+        protected IGRDMSRepository _repo;
+        protected ISegmentEditsRepository _editRepo;
+        public BaseController(IGRDMSRepository repo, ISegmentEditsRepository editRepo)
         {
             this._repo = repo;
+            this._editRepo = editRepo;
         }
 
     }
